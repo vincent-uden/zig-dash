@@ -1,7 +1,6 @@
 const std = @import("std");
 const zig_dash = @import("zig_dash");
 const rl = @import("raylib");
-
 const zeit = @import("zeit");
 
 const JournalEntry = struct {
@@ -25,21 +24,10 @@ const JournalEntry = struct {
     }
 };
 
-pub fn main() anyerror!void {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    const allocator = gpa.allocator();
+fn journal_entries_for_unit(allocator: std.mem.Allocator, args: struct { unit_name: []const u8 = "" }) anyerror!std.ArrayList(JournalEntry) {
+    var journal_args = [_][]const u8{ "journalctl", "--no-pager", "--output=short-iso", "-u", args.unit_name };
 
-    var env = try std.process.getEnvMap(allocator);
-    defer env.deinit();
-
-    const now = try zeit.instant(.{});
-    std.debug.print("{}\n", .{now});
-
-    const screenWidth = 800;
-    const screenHeight = 450;
-
-    // Call journalctl
-    var child = std.process.Child.init(&[_][]const u8{ "journalctl", "--no-pager", "--output=short-iso" }, allocator);
+    var child = std.process.Child.init(if (args.unit_name.len > 0) journal_args[0..] else journal_args[0..3], allocator);
     child.stdout_behavior = .Pipe;
     child.stderr_behavior = .Pipe;
     try child.spawn();
@@ -47,6 +35,8 @@ pub fn main() anyerror!void {
     var stdout_buffer: [1024]u8 = undefined;
     var rdr_wrapper = child.stdout.?.reader(&stdout_buffer);
     const rdr: *std.Io.Reader = &rdr_wrapper.interface;
+
+    var out: std.ArrayList(JournalEntry) = .empty;
     while ((rdr.peekByte() catch 0) != 0) {
         const line = rdr.takeDelimiterExclusive('\n') catch |err| {
             switch (err) {
@@ -64,11 +54,31 @@ pub fn main() anyerror!void {
         if (std.mem.startsWith(u8, line, "-- Boot")) {
             continue;
         }
-        const entry = try JournalEntry.from_str(line);
-        std.debug.print("{}\n", .{entry});
+        try out.append(allocator, JournalEntry.from_str(line) catch |err| {
+            std.debug.print("Couldn't parse line: \"{s}\"\n", .{line});
+            return err;
+        });
     }
-
     _ = try child.wait();
+
+    return out;
+}
+
+pub fn main() anyerror!void {
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    const allocator = gpa.allocator();
+
+    var env = try std.process.getEnvMap(allocator);
+    defer env.deinit();
+
+    const now = try zeit.instant(.{});
+    std.debug.print("{}\n", .{now});
+
+    const screenWidth = 800;
+    const screenHeight = 450;
+
+    const entries = try journal_entries_for_unit(allocator, .{ .unit_name = "mullvad-daemon" });
+    std.debug.print("Found {} journal entries\n", .{entries.items.len});
 
     rl.initWindow(screenWidth, screenHeight, "raylib-zig [core] example - basic window");
     defer rl.closeWindow();
