@@ -16,6 +16,12 @@ pub fn build(b: *std.Build) void {
         .target = target,
     });
 
+    const zeit_dep = b.dependency("zeit", .{
+        .target = target,
+        .optimize = optimize,
+    });
+    const zeit = zeit_dep.module("zeit");
+
     const exe = b.addExecutable(.{
         .name = "zig_dash",
         .root_module = b.createModule(.{
@@ -29,6 +35,7 @@ pub fn build(b: *std.Build) void {
     });
     exe.root_module.linkLibrary(raylib_artifact);
     exe.root_module.addImport("raylib", raylib);
+    exe.root_module.addImport("zeit", zeit);
 
     b.installArtifact(exe);
 
