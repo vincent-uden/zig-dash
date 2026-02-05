@@ -65,14 +65,17 @@ pub fn parse_journal_lines(allocator: std.mem.Allocator, rdr: *std.Io.Reader) an
     return out;
 }
 
-test "Can parse sample journalctl lines" {
-    var gpa = std.heap.DebugAllocator(.{}){};
-    const allocator = gpa.allocator();
-
+pub fn sample_journal_entries(allocator: std.mem.Allocator) anyerror!std.ArrayList(JournalEntry) {
     var file = try std.fs.cwd().openFile("./assets/sample_journalctl_lines.txt", .{ .mode = .read_only });
     defer file.close();
     var buffer: [1024]u8 = undefined;
     var rdr: std.fs.File.Reader = file.reader(&buffer);
+    return try parse_journal_lines(allocator, &rdr.interface);
+}
 
-    try std.testing.expect((try parse_journal_lines(allocator, &rdr.interface)).items.len > 0);
+test "Can parse sample journalctl lines" {
+    var gpa = std.heap.DebugAllocator(.{}){};
+    const allocator = gpa.allocator();
+
+    try std.testing.expect((try sample_journal_entries(allocator)).items.len > 0);
 }
