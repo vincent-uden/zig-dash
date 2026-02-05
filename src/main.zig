@@ -28,6 +28,8 @@ pub fn main() anyerror!void {
     const mediumFont = try rl.loadFontEx("./assets/fonts/static/Geist-Medium.ttf", 20, null);
     const boldFont = try rl.loadFontEx("./assets/fonts/static/Geist-Black.ttf", 20, null);
 
+    var tmp_alloc: std.heap.ArenaAllocator = .init(std.heap.page_allocator);
+
     rl.setTargetFPS(60);
 
     while (!rl.windowShouldClose()) {
@@ -39,9 +41,18 @@ pub fn main() anyerror!void {
 
         rl.clearBackground(.dark_gray);
 
-        rl.drawFPS(10, 10);
-        rl.drawTextEx(mediumFont, "Congrats! You created your first window!", .{ .x = 190, .y = 200 }, 20, 1.0, .light_gray);
-        rl.drawTextEx(boldFont, "Congrats!", .{ .x = 190, .y = 240 }, 20, 1.0, .light_gray);
+        const label = try std.fmt.allocPrintSentinel(tmp_alloc.allocator(), "Found {} journal entries", .{entries.items.len}, 0);
+        rl.drawTextEx(boldFont, label, .{ .x = 10, .y = 10 }, 20, 1.0, .light_gray);
+
+        var i: i64 = 0;
+        for (entries.items) |entry| {
+            std.debug.print("{any}", .{entry});
+            const entryLbl = try std.fmt.allocPrintSentinel(tmp_alloc.allocator(), "{s}", .{entry.hostname}, 0);
+            rl.drawTextEx(mediumFont, entryLbl, .{ .x = 10, .y = @as(f32, @floatFromInt(i)) * 20 }, 20, 1.0, .light_gray);
+            i += 1;
+        }
+
+        _ = tmp_alloc.reset(.retain_capacity);
     }
 }
 
