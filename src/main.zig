@@ -7,24 +7,19 @@ const zeit = @import("zeit");
 const JournalEntry = struct {
     buffer: []u8,
     timestamp: zeit.Time,
-    hostname: []u8,
-    unit: []u8,
-    message: []u8,
+    hostname: []const u8,
+    unit: []const u8,
+    message: []const u8,
 
-    fn from_str(buffer: []u8) error{ParsingError}!JournalEntry {
+    fn from_str(buffer: []u8) anyerror!JournalEntry {
         var iterator = std.mem.splitScalar(u8, buffer, ' ');
         const iso_timestamp = try (iterator.next() orelse error.ParsingError);
         const hostname = try (iterator.next() orelse error.ParsingError);
         const unit = try (iterator.next() orelse error.ParsingError);
 
-        const timestamp = zeit.Time.fromISO8601(iso_timestamp);
+        const timestamp = try zeit.Time.fromISO8601(iso_timestamp);
 
-        const out: JournalEntry = .{
-            .buffer = buffer,
-            .hostname = hostname,
-            .unit = unit,
-            .timestamp = timestamp,
-        };
+        const out: JournalEntry = .{ .buffer = buffer, .hostname = hostname, .unit = unit, .timestamp = timestamp, .message = "" };
 
         return out;
     }
@@ -66,7 +61,11 @@ pub fn main() anyerror!void {
         };
         // Toss the newline
         rdr.toss(1);
-        std.debug.print("{s}\n", .{line});
+        if (std.mem.startsWith(u8, line, "-- Boot")) {
+            continue;
+        }
+        const entry = try JournalEntry.from_str(line);
+        std.debug.print("{}\n", .{entry});
     }
 
     _ = try child.wait();
