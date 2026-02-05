@@ -69,12 +69,10 @@ test "Can parse sample journalctl lines" {
     var gpa = std.heap.DebugAllocator(.{}){};
     const allocator = gpa.allocator();
 
-    var file = std.fs.cwd().openFile("./assets/sample_journalctl_lines.txt", .{ .mode = .read_only });
+    var file = try std.fs.cwd().openFile("./assets/sample_journalctl_lines.txt", .{ .mode = .read_only });
     defer file.close();
     var buffer: [1024]u8 = undefined;
     var rdr: std.fs.File.Reader = file.reader(&buffer);
 
-    std.testing.expect((try parse_journal_lines(allocator, &rdr)).items.len == 0);
-
-    parse_journal_lines(allocator, rdr);
+    try std.testing.expect((try parse_journal_lines(allocator, &rdr.interface)).items.len > 0);
 }

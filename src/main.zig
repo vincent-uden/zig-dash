@@ -39,3 +39,7 @@ pub fn main() anyerror!void {
         rl.drawText("Congrats! You created your first window!", 190, 200, 20, .light_gray);
     }
 }
+
+test {
+    _ = journal;
+}
