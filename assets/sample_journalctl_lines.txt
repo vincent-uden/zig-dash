@@ -1,0 +1,6 @@
+2026-02-03T21:29:10+01:00 vincent cli_client[2836]: [DEBUG] get_account_data
+2026-02-03T21:29:10+01:00 vincent cli_client[2836]: ERROR
+2026-02-03T22:29:10+01:00 vincent cli_client[2836]: [DEBUG] get_account_data
+2026-02-03T22:29:10+01:00 vincent cli_client[2836]: OK
+2026-02-05T21:29:10+01:00 vincent cli_client[2836]: [DEBUG] get_account_data
+2026-02-05T21:29:10+01:00 vincent cli_client[2836]: OK
