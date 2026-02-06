@@ -81,6 +81,27 @@ pub fn sample_journal_entries(allocator: std.mem.Allocator) anyerror!std.ArrayLi
     return try parse_journal_lines(allocator, &rdr.interface);
 }
 
+pub const JournalRS485Stats = struct {
+    success_n: u64 = 0,
+    error_n: u64 = 0,
+    last_error: ?zeit.Time = null,
+};
+
+pub fn collect_stats(entries: []const JournalEntry) JournalRS485Stats {
+    var stats: JournalRS485Stats = .{};
+    for (entries) |entry| {
+        if (std.mem.eql(u8, "OK", entry.message)) {
+            stats.success_n += 1;
+        } else if (std.mem.eql(u8, "ERROR", entry.message)) {
+            stats.error_n += 1;
+            stats.last_error = entry.timestamp;
+        }
+    }
+    return stats;
+}
+
+// --- Tests
+
 const expect = std.testing.expect;
 
 test "Can parse sample journalctl lines" {
